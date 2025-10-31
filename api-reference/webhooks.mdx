@@ -151,19 +151,33 @@ Triggered when a batch call campaign status changes (e.g., scheduled, in_progres
 
 ## Security
 
-### Signature Verification
+### Webhook Security
 
-Each webhook request includes an `X-Webhook-Signature` header with a SHA-256 HMAC of the request body. Verify this signature to ensure the request is from CallIntel.
+#### Signature Verification
+
+Every webhook request includes an `X-Webhook-Signature` header containing an HMAC-SHA256 signature. Always verify this signature to ensure the request originated from CallIntel and hasn't been tampered with.
+
+#### Signature Format
+```
+sha256=<hex_encoded_hmac>
+```
+
+#### Verification Process
+1. Extract the signature from the `X-Webhook-Signature` header
+2. Compute HMAC-SHA256 of the raw request body using your webhook secret
+3. Prepend "sha256=" to your computed hash
+4. Compare using a constant-time comparison function to prevent timing attacks
 
 <CodeGroup>
-<CodeGroupItem title="Node.js">
+<CodeGroupItem title="Node.js Example">
 
 ```javascript
 const crypto = require('crypto');
 
-function verifySignature(signature, secret, body) {
+function verifyWebhook(payload, signature, secret) {
   const hmac = crypto.createHmac('sha256', secret);
-  const digest = 'sha256=' + hmac.update(JSON.stringify(body)).digest('hex');
+  const digest = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
+  
   return crypto.timingSafeEqual(
     Buffer.from(signature),
     Buffer.from(digest)
@@ -172,7 +186,75 @@ function verifySignature(signature, secret, body) {
 ```
 
 </CodeGroupItem>
+
+<CodeGroupItem title="Express.js Middleware">
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.post('/webhook', express.json(), (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const isValid = verifyWebhook(req.body, signature, process.env.WEBHOOK_SECRET);
+  
+  if (!isValid) {
+    return res.status(401).send('Invalid signature');
+  }
+  
+  // Process webhook
+  const { event_type, body } = req.body;
+  console.log('Received event:', event_type, body);
+  
+  res.status(200).send('OK');
+});
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="Python (Flask)">
+
+```python
+import hmac
+import hashlib
+import json
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+WEBHOOK_SECRET = 'your_webhook_secret'
+
+def verify_webhook(payload, signature, secret):
+    """Verify webhook signature"""
+    expected_signature = 'sha256=' + hmac.new(
+        secret.encode(),
+        json.dumps(payload).encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, expected_signature)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-Webhook-Signature')
+    payload = request.get_json()
+    
+    if not verify_webhook(payload, signature, WEBHOOK_SECRET):
+        abort(401, 'Invalid signature')
+    
+    # Process webhook
+    event_type = payload.get('event_type')
+    body = payload.get('body')
+    
+    print(f'Received event: {event_type}', body)
+    
+    return 'OK', 200
+```
+
+</CodeGroupItem>
 </CodeGroup>
+
+<Warning>
+Always use a constant-time comparison function like `crypto.timingSafeEqual()` to prevent timing attacks when comparing signatures.
+</Warning>
 
 ## Implementation Guide
 

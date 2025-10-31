@@ -1,0 +1,343 @@
+---
+title: "Outbound & Scheduled Calls"
+description: "Make outbound calls and schedule calls using the CallIntel API"
+---
+
+# Outbound & Scheduled Calls API
+
+## Make an Outbound Call
+
+Initiate a single or batch outbound call.
+
+```http
+POST /outbound-call
+```
+
+### Request
+
+<CodeGroup>
+<CodeGroupItem title="Single Call">
+
+```json
+{
+  "to_number": [
+    {
+      "phone_number": "+91 7874527239",
+      "name": "Raju",
+      "email": "",
+      "company": "",
+      "notes": ""
+    }
+  ],
+  "from_number": "+918031272965"
+}
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="Batch Call">
+
+```json
+{
+  "to_number": [
+    {
+      "phone_number": "+91 78745 27239",
+      "name": "Raju",
+      "email": "",
+      "company": "",
+      "notes": ""
+    },
+    {
+      "phone_number": "+9199097832",
+      "name": "Shyam",
+      "email": "",
+      "company": "",
+      "notes": ""
+    }
+  ],
+  "from_number": "+918031272965",
+  "name": "Raju999"
+}
+```
+
+</CodeGroupItem>
+</CodeGroup>
+
+### Responses
+
+<CodeGroup>
+<CodeGroupItem title="200 Success - Single Call">
+
+```json
+{
+  "success": true,
+  "successcode": 200,
+  "data": {
+    "message": "Call initiated successfully and added to the queue.",
+    "calls_queued": 1,
+    "calls_failed": 0,
+    "summary": {
+      "total_recipients": 1,
+      "successful": 1,
+      "failed": 0,
+      "is_batch_call": false
+    }
+  }
+}
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="200 Success - Batch Call">
+
+```json
+{
+  "success": true,
+  "successcode": 200,
+  "data": {
+    "message": "Batch call partially successful. 1 valid calls queued, 1 invalid numbers skipped.",
+    "calls_queued": 1,
+    "calls_failed": 1,
+    "summary": {
+      "total_recipients": 2,
+      "successful": 1,
+      "failed": 1,
+      "is_batch_call": true
+    },
+    "batch_call": {
+      "id": "3a2cacb5-fc38-4eb0-b93f-a67b84ba1f56",
+      "name": "Raju999",
+      "call_from": "+918031272965",
+      "status": "initiated",
+      "total": 2,
+      "agent_name": "Test Agent",
+      "to_number_list": [
+        {
+          "name": "Raju",
+          "email": "",
+          "notes": "",
+          "company": "",
+          "phone_number": "+91 78745 27239"
+        },
+        {
+          "name": "Shyam",
+          "email": "",
+          "notes": "",
+          "company": "",
+          "phone_number": "+9199097832"
+        }
+      ],
+      "scheduled_time": "2025-10-30T17:50:27.949758+00:00"
+    }
+  }
+}
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="400 Bad Request">
+
+```json
+{
+  "success": false,
+  "successcode": 400,
+  "error": {
+    "code": "INVALID_PHONE_NUMBER",
+    "message": "The phone number provided is invalid. Please ensure the number includes a valid country code (e.g., +1 for US, +91 for India) and is in the correct format."
+  }
+}
+```
+
+</CodeGroupItem>
+</CodeGroup>
+
+## Schedule a Call
+
+Schedule a single or batch call for a future time.
+
+```http
+POST /schedule-call
+```
+
+### Request
+
+<CodeGroup>
+<CodeGroupItem title="Single Call">
+
+```json
+{
+  "scheduled_time": "2025-10-30T12:40:00.587Z",
+  "call_request": {
+    "to_number": [
+      {
+        "phone_number": "+91 7874527239",
+        "name": "Raju",
+        "email": "",
+        "company": "",
+        "notes": ""
+      }
+    ],
+    "from_number": "+918031272965"
+  }
+}
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="Batch Call">
+
+```json
+{
+  "scheduled_time": "2025-10-30T12:40:00.587Z",
+  "call_request": {
+    "to_number": [
+      {
+        "phone_number": "+91 78745 27239",
+        "name": "Raju",
+        "email": "",
+        "company": "",
+        "notes": ""
+      },
+      {
+        "phone_number": "+919099999263",
+        "name": "Shyam",
+        "email": "",
+        "company": "",
+        "notes": ""
+      }
+    ],
+    "from_number": "+918031272965",
+    "name": "Raju999"
+  }
+}
+```
+
+</CodeGroupItem>
+</CodeGroup>
+
+### Responses
+
+<CodeGroup>
+<CodeGroupItem title="200 Success - Single Call">
+
+```json
+{
+  "success": true,
+  "successcode": 200,
+  "data": {
+    "message": "Call scheduled successfully for October 30, 2025 at 12:40 PM UTC.",
+    "scheduled_call_id": "2e31a0db-0632-4c7e-b83e-3ac0399f73cd",
+    "scheduled_time": "2025-10-30T12:40:00.587000+00:00",
+    "is_batch_call": false,
+    "call_details": {
+      "id": "2e31a0db-0632-4c7e-b83e-3ac0399f73cd",
+      "call_to": "+91 7874527239",
+      "call_from": "+918031272965",
+      "agent_name": "Test Agent",
+      "status": "scheduled"
+    }
+  }
+}
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="200 Success - Batch Call">
+
+```json
+{
+  "success": true,
+  "successcode": 200,
+  "data": {
+    "message": "Batch call scheduled successfully for October 30, 2025 at 12:40 PM UTC.",
+    "scheduled_call_id": "1983c147-102f-44db-9a4a-902091b45d88",
+    "scheduled_time": "2025-10-30T12:40:00.587000+00:00",
+    "is_batch_call": true,
+    "batch_call": {
+      "id": "ef52f2bf-9a40-41f5-a2ae-736fc3eaed5a",
+      "name": "Raju999",
+      "phone_number_id": "+918031272965",
+      "status": "scheduled",
+      "total": 2,
+      "agent_name": "Test Agent",
+      "to_number_list": [
+        {
+          "name": "Raju",
+          "email": "",
+          "notes": "",
+          "company": "",
+          "phone_number": "+91 78745 27239"
+        },
+        {
+          "name": "Shyam",
+          "email": "",
+          "notes": "",
+          "company": "",
+          "phone_number": "+919099999263"
+        }
+      ]
+    }
+  }
+}
+```
+
+</CodeGroupItem>
+</CodeGroup>
+
+## Error Handling
+
+### Common Error Responses
+
+<CodeGroup>
+<CodeGroupItem title="400 Bad Request">
+
+```json
+{
+  "success": false,
+  "successcode": 400,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Invalid request parameters"
+  }
+}
+```
+
+</CodeGroupItem>
+
+<CodeGroupItem title="401 Unauthorized">
+
+```json
+{
+  "success": false,
+  "successcode": 401,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication failed. Please provide valid credentials."
+  }
+}
+```
+
+</CodeGroupItem>
+</CodeGroup>
+
+## Best Practices
+
+1. **Input Validation**
+   - Always validate phone numbers before making requests
+   - Ensure proper country codes are included
+   - Validate email formats if provided
+
+2. **Error Handling**
+   - Check for `success` flag in responses
+   - Handle partial success cases in batch operations
+   - Implement retry logic for transient failures
+
+3. **Rate Limiting**
+   - Be aware of API rate limits
+   - Implement exponential backoff for retries
+   - Queue large batch operations
+
+4. **Security**
+   - Never expose API keys in client-side code
+   - Use environment variables for sensitive data
+   - Validate all responses before processing
