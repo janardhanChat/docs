@@ -1,22 +1,19 @@
 ---
-title: "Outbound & Scheduled Calls"
-description: "Make outbound calls and schedule calls using the CallIntel API"
+title: "Outbound Calls"
+description: "Make outbound calls using the CallIntel API"
 ---
 
-# Outbound & Scheduled Calls API
+# Outbound Calls API
 
-## Make an Outbound Call
+## Make a Call
 
-Initiate a single or batch outbound call.
+Initiate an outbound call to one or more recipients.
 
 ```http
 POST /outbound-call
 ```
 
-### Request
-
-<CodeGroup>
-<CodeGroupItem title="Single Call">
+### Single Call Request
 
 ```json
 {
@@ -33,9 +30,7 @@ POST /outbound-call
 }
 ```
 
-</CodeGroupItem>
-
-<CodeGroupItem title="Batch Call">
+### Batch Call Request
 
 ```json
 {
@@ -60,13 +55,20 @@ POST /outbound-call
 }
 ```
 
-</CodeGroupItem>
-</CodeGroup>
+### Request Parameters
 
-### Responses
+| Parameter    | Type   | Required | Description                                   |
+|--------------|--------|----------|-----------------------------------------------|
+| to_number    | Array  | Yes      | Array containing recipient details            |
+| phone_number | String | Yes      | Recipient's phone number with country code    |
+| name         | String | No       | Recipient's name                              |
+| email        | String | No       | Recipient's email                             |
+| company      | String | No       | Recipient's company                           |
+| notes        | String | No       | Additional notes about the recipient          |
+| from_number  | String | Yes      | The phone number to call from (must be verified) |
+| name         | String | No       | Name for batch call (required for batch calls) |
 
-<CodeGroup>
-<CodeGroupItem title="200 Success - Single Call">
+### Success Response (Single Call)
 
 ```json
 {
@@ -86,9 +88,7 @@ POST /outbound-call
 }
 ```
 
-</CodeGroupItem>
-
-<CodeGroupItem title="200 Success - Batch Call">
+### Success Response (Batch Call)
 
 ```json
 {
@@ -133,9 +133,7 @@ POST /outbound-call
 }
 ```
 
-</CodeGroupItem>
-
-<CodeGroupItem title="400 Bad Request">
+### Error Response
 
 ```json
 {
@@ -148,21 +146,15 @@ POST /outbound-call
 }
 ```
 
-</CodeGroupItem>
-</CodeGroup>
-
 ## Schedule a Call
 
-Schedule a single or batch call for a future time.
+Schedule an outbound call for a future date and time.
 
 ```http
 POST /schedule-call
 ```
 
-### Request
-
-<CodeGroup>
-<CodeGroupItem title="Single Call">
+### Single Scheduled Call Request
 
 ```json
 {
@@ -182,9 +174,7 @@ POST /schedule-call
 }
 ```
 
-</CodeGroupItem>
-
-<CodeGroupItem title="Batch Call">
+### Batch Scheduled Call Request
 
 ```json
 {
@@ -212,13 +202,14 @@ POST /schedule-call
 }
 ```
 
-</CodeGroupItem>
-</CodeGroup>
+### Request Parameters
 
-### Responses
+| Parameter       | Type   | Required | Description                                   |
+|-----------------|--------|----------|-----------------------------------------------|
+| scheduled_time  | String | Yes      | ISO 8601 formatted date and time for scheduling the call |
+| call_request    | Object | Yes      | Call request object (same as /outbound-call)  |
 
-<CodeGroup>
-<CodeGroupItem title="200 Success - Single Call">
+### Success Response (Single Scheduled Call)
 
 ```json
 {
@@ -240,9 +231,7 @@ POST /schedule-call
 }
 ```
 
-</CodeGroupItem>
-
-<CodeGroupItem title="200 Success - Batch Call">
+### Success Response (Batch Scheduled Call)
 
 ```json
 {
@@ -280,64 +269,74 @@ POST /schedule-call
   }
 }
 ```
+| email        | String | No       | Recipient's email address                     |
+| company      | String | No       | Recipient's company name                      |
+| notes        | String | No       | Additional notes about the recipient          |
+| from_number  | String | Yes      | Caller ID number (must be verified)           |
 
-</CodeGroupItem>
-</CodeGroup>
+### Response
 
-## Error Handling
+#### Success Response (200 OK)
 
-### Common Error Responses
+```json
+{
+  "success": true,
+  "successcode": 200,
+  "data": {
+    "message": "Call initiated successfully and added to the queue.",
+    "calls_queued": 1,
+    "calls_failed": 0,
+    "summary": {
+      "total_recipients": 1,
+      "successful": 1,
+      "failed": 0,
+      "is_batch_call": false
+    }
+  }
+}
+```
 
-<CodeGroup>
-<CodeGroupItem title="400 Bad Request">
+#### Error Response (400 Bad Request)
 
 ```json
 {
   "success": false,
   "successcode": 400,
   "error": {
-    "code": "INVALID_REQUEST",
-    "message": "Invalid request parameters"
+    "code": "INVALID_PHONE_NUMBER",
+    "message": "The phone number provided is invalid. Please ensure the number includes a valid country code (e.g., +1 for US, +91 for India) and is in the correct format."
   }
 }
 ```
 
-</CodeGroupItem>
+### Error Codes
 
-<CodeGroupItem title="401 Unauthorized">
+| Code                 | Description                                                                 |
+|----------------------|-----------------------------------------------------------------------------|
+| INVALID_PHONE_NUMBER | The provided phone number is invalid or missing country code                |
+| UNAUTHORIZED         | Missing or invalid API key                                                 |
+| INSUFFICIENT_CREDIT  | Not enough credit to make the call                                         |
+| INVALID_CALLER_ID    | The from_number is not a verified caller ID                                |
+| RATE_LIMIT_EXCEEDED  | Too many requests. Please wait before making additional calls             |
 
-```json
-{
-  "success": false,
-  "successcode": 401,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Authentication failed. Please provide valid credentials."
-  }
-}
+### Example Usage
+
+```bash
+curl -X POST https://api.callintel.com/outbound-call \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to_number": [{
+      "phone_number": "+91 7874527239",
+      "name": "Raju"
+    }],
+    "from_number": "+918031272965"
+  }'
 ```
 
-</CodeGroupItem>
-</CodeGroup>
-
-## Best Practices
-
-1. **Input Validation**
-   - Always validate phone numbers before making requests
-   - Ensure proper country codes are included
-   - Validate email formats if provided
-
-2. **Error Handling**
-   - Check for `success` flag in responses
-   - Handle partial success cases in batch operations
-   - Implement retry logic for transient failures
-
-3. **Rate Limiting**
-   - Be aware of API rate limits
-   - Implement exponential backoff for retries
-   - Queue large batch operations
-
-4. **Security**
-   - Never expose API keys in client-side code
-   - Use environment variables for sensitive data
-   - Validate all responses before processing
+### Notes
+- The API supports only one recipient per request for single calls
+- Phone numbers must include a valid country code
+- The `from_number` must be a verified caller ID in your CallIntel account
+- API responses are returned in JSON format
+- All timestamps are in UTC timezone
